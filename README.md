@@ -92,9 +92,10 @@ flowchart TD
 - **Dashboard Overview (`/admin`)**: Real-time KPIs from MongoDB Atlas (Portfolio & Completed Commissions count, Active Adoptables, Pending Inquiries), environment health status indicators, and recent client requests.
 - **Portfolio & Completed Commissions Manager (`/admin/portfolio`)**: Drag-and-drop uploader (`ImageUploader`) using signed direct uploads to **Cloudinary** (bypassing Vercel's 4.5MB serverless body limit). Artworks marked as **Completed Client Commissions** can optionally credit the client (`@ClientHandle`) and automatically link as visual examples to any Commission Tier.
 - **Commissions & Requests Manager (`/admin/commissions`)**:
+  - **Commission Types & Prices Tab**: Quick inline price & availability status toggles (`open` / `waitlist` / `closed`), visual portfolio artwork selector, and full tier editor.
   - **Client Requests Tab**: Manage incoming commission orders and adoptable claims (`pending` → `in_progress` → `completed` → `archived`).
-  - **Pricing Tiers Tab**: Create, edit, reorder, and upload example images for commission tiers.
 - **Adoptable Inventory Control (`/admin/adoptables`)**: Full CRUD with Cloudinary character sheet uploads and one-click status toggles (`available` / `pending` / `sold`).
+- **Social Links & Floating Discord Manager (`/admin/settings`)**: Edit social media footer icons/URLs, add or hide social platforms, and configure the floating Discord chat button (`url`, `@username`, label, and visibility) without touching code.
 
 ---
 

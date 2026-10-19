@@ -57,6 +57,9 @@ export default async function AdminDashboard() {
                     <Link href="/admin/adoptables" className="btn btn-outline">
                         👾 New Adoptable
                     </Link>
+                    <Link href="/admin/settings" className="btn btn-ghost">
+                        ⚙️ Socials &amp; Discord
+                    </Link>
                 </div>
             </div>
 

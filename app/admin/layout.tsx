@@ -90,6 +90,13 @@ export default async function AdminLayout({
                     >
                         📝 Commissions
                     </Link>
+                    <Link
+                        href="/admin/settings"
+                        className="btn btn-ghost"
+                        style={{ justifyContent: "flex-start" }}
+                    >
+                        ⚙️ Socials &amp; Discord
+                    </Link>
 
                     <div
                         className="separator"

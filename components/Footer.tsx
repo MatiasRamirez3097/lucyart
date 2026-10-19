@@ -1,13 +1,12 @@
-// components/Footer.tsx
 import React from "react";
+import { SocialLinkItem } from "@/types";
 
-export default function Footer() {
-    const socialLinks = [
-        { name: "Twitter / X", url: "#", icon: "🐦" }, // Puedes usar SVGs de react-icons luego
-        { name: "DeviantArt", url: "#", icon: "🎨" },
-        { name: "Instagram", url: "#", icon: "📸" },
-        { name: "Trello (Status)", url: "#", icon: "📋" },
-    ];
+interface FooterProps {
+    socialLinks?: SocialLinkItem[];
+}
+
+export default function Footer({ socialLinks = [] }: FooterProps) {
+    const visibleLinks = socialLinks.filter((link) => link.enabled);
 
     return (
         <footer
@@ -26,32 +25,35 @@ export default function Footer() {
                     LucyArt
                 </h3>
 
-                <div
-                    style={{
-                        display: "flex",
-                        gap: "20px",
-                        justifyContent: "center",
-                        marginBottom: "24px",
-                    }}
-                >
-                    {socialLinks.map((link) => (
-                        <a
-                            key={link.name}
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="nav-link" // Reutilizamos el estilo de link animado
-                            style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                            }}
-                        >
-                            <span>{link.icon}</span>
-                            {link.name}
-                        </a>
-                    ))}
-                </div>
+                {visibleLinks.length > 0 && (
+                    <div
+                        style={{
+                            display: "flex",
+                            gap: "20px",
+                            justifyContent: "center",
+                            flexWrap: "wrap",
+                            marginBottom: "24px",
+                        }}
+                    >
+                        {visibleLinks.map((link) => (
+                            <a
+                                key={link.id || link.name}
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="nav-link"
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                }}
+                            >
+                                <span>{link.icon}</span>
+                                {link.name}
+                            </a>
+                        ))}
+                    </div>
+                )}
 
                 <p style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
                     © {new Date().getFullYear()} LucyArt. All rights reserved.

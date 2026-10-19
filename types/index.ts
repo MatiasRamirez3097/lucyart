@@ -96,3 +96,25 @@ export interface Inquiry {
     status: InquiryStatus;
     createdAt: string;
 }
+
+// --- Site Settings (Social Media Links & Floating Discord Chat) ---
+export interface SocialLinkItem {
+    id: string;
+    name: string;
+    url: string;
+    icon: string;
+    enabled: boolean;
+}
+
+export interface DiscordConfig {
+    enabled: boolean;
+    url: string;
+    username: string;
+    buttonText: string;
+}
+
+export interface SiteSettings {
+    socialLinks: SocialLinkItem[];
+    discord: DiscordConfig;
+}
+
