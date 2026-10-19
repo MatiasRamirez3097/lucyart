@@ -1,5 +1,6 @@
 import React from "react";
 import { SocialLinkItem } from "@/types";
+import SocialIcon from "@/components/SocialIcon";
 
 interface FooterProps {
     socialLinks?: SocialLinkItem[];
@@ -29,7 +30,7 @@ export default function Footer({ socialLinks = [] }: FooterProps) {
                     <div
                         style={{
                             display: "flex",
-                            gap: "20px",
+                            gap: "24px",
                             justifyContent: "center",
                             flexWrap: "wrap",
                             marginBottom: "24px",
@@ -43,13 +44,17 @@ export default function Footer({ socialLinks = [] }: FooterProps) {
                                 rel="noopener noreferrer"
                                 className="nav-link"
                                 style={{
-                                    display: "flex",
+                                    display: "inline-flex",
                                     alignItems: "center",
                                     gap: "8px",
                                 }}
                             >
-                                <span>{link.icon}</span>
-                                {link.name}
+                                <SocialIcon
+                                    icon={link.icon}
+                                    name={link.name}
+                                    size={18}
+                                />
+                                <span>{link.name}</span>
                             </a>
                         ))}
                     </div>
