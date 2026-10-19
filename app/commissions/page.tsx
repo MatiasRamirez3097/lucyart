@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { getCommissionTiers } from "@/app/actions/commissions";
 import { getPortfolioItems } from "@/app/actions/portfolio";
+import CommissionsShowcaseClient from "@/components/CommissionsShowcaseClient";
 
 export const dynamic = "force-dynamic";
 
@@ -60,151 +61,11 @@ export default async function CommissionsPage() {
                     </p>
                 </div>
 
-                {/* Tiers Grid */}
-                <div className="grid-3" style={{ alignItems: "start" }}>
-                    {tiers.map((tier) => {
-                        const linkedCommissionImages = completedCommissions
-                            .filter((item) => item.commissionTierId === tier.id)
-                            .map((item) => item.imageUrl);
-
-                        const allExamples = Array.from(
-                            new Set([
-                                ...(tier.exampleImages || []),
-                                ...linkedCommissionImages,
-                            ]),
-                        ).filter(Boolean);
-
-                        const orderHref = `/contact?subject=commission&tier=${encodeURIComponent(
-                            tier.title,
-                        )}`;
-
-                        return (
-                            <div
-                                key={tier.id}
-                                className="card"
-                                style={{
-                                    padding: "24px",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "16px",
-                                }}
-                            >
-                                <span className="tag pink">{tier.title}</span>
-
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "baseline",
-                                        gap: "4px",
-                                    }}
-                                >
-                                    <span
-                                        style={{
-                                            fontSize: "2.5rem",
-                                            fontWeight: "bold",
-                                            fontFamily: "Fredoka One",
-                                            color: "var(--white)",
-                                        }}
-                                    >
-                                        ${tier.priceBase}
-                                    </span>
-                                    <span style={{ color: "var(--muted)" }}>
-                                        USD / Base
-                                    </span>
-                                </div>
-
-                                <p
-                                    style={{
-                                        color: "var(--white)",
-                                        fontSize: "0.95rem",
-                                        fontWeight: 600,
-                                    }}
-                                >
-                                    {tier.description}
-                                </p>
-
-                                <div className="separator"></div>
-
-                                <ul
-                                    style={{
-                                        color: "var(--muted)",
-                                        fontSize: "0.9rem",
-                                        paddingLeft: "18px",
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        gap: "8px",
-                                    }}
-                                >
-                                    {tier.features.map((f) => (
-                                        <li key={f}>{f}</li>
-                                    ))}
-                                </ul>
-
-                                {allExamples.length > 0 && (
-                                    <>
-                                        <div className="separator"></div>
-                                        <div>
-                                            <p
-                                                style={{
-                                                    fontSize: "0.75rem",
-                                                    color: "var(--muted)",
-                                                    textTransform: "uppercase",
-                                                    fontWeight: 700,
-                                                    marginBottom: "8px",
-                                                }}
-                                            >
-                                                Tier Examples:
-                                            </p>
-                                            <div
-                                                style={{
-                                                    display: "flex",
-                                                    gap: "10px",
-                                                    flexWrap: "wrap",
-                                                }}
-                                            >
-                                                {allExamples.map((img, i) => (
-                                                    <a
-                                                        key={i}
-                                                        href={img}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                    >
-                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                        <img
-                                                            src={img}
-                                                            alt={`${tier.title} example`}
-                                                            style={{
-                                                                width: "64px",
-                                                                height: "64px",
-                                                                borderRadius:
-                                                                    "8px",
-                                                                objectFit:
-                                                                    "cover",
-                                                                border: "1px solid var(--border)",
-                                                            }}
-                                                        />
-                                                    </a>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-
-                                <Link
-                                    href={orderHref}
-                                    className="btn btn-primary"
-                                    style={{
-                                        marginTop: "16px",
-                                        width: "100%",
-                                        justifyContent: "center",
-                                    }}
-                                >
-                                    Order this Tier
-                                </Link>
-                            </div>
-                        );
-                    })}
-                </div>
+                {/* Interactive Commission Cards + Illustrations Modal */}
+                <CommissionsShowcaseClient
+                    tiers={tiers}
+                    portfolioItems={portfolioItems}
+                />
 
                 {/* Recent Completed Commissions Showcase */}
                 {completedCommissions.length > 0 && (

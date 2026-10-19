@@ -12,7 +12,7 @@ Unlike generic link-in-bio or static portfolio sites, LucyArt provides an integr
 1. **Audience engagement & art discovery** (Interactive Portfolio & Completed Client Commissions showcase with high-res Lightbox).
 2. **Transparent commission ordering** (Multi-tier pricing, real completed commission examples, clear deliverables, and integrated Terms of Service).
 3. **Adoptable character sales** (Real-time status tracking: *Available*, *Pending*, *Sold*, and one-click claiming).
-4. **Artist backoffice administration** (Centralized dashboard with direct signed Cloudinary uploads, inventory management, and client inquiry tracking).
+4. **Scalable Role-Based Authentication & Backoffice (`admin` / `client`)** (Protected `/admin` portal with signed `httpOnly` sessions, auto-bootstrapped Admin account, and ready-to-scale client accounts).
 
 ---
 
@@ -27,6 +27,7 @@ flowchart TD
         Adoptables["👾 Adoptables (Status Filter & Claim Flow)"]
         TOS["📜 Terms of Service (TOS & Rights)"]
         Contact["✉️ Contact & Order Submission (Prefilled Subjects)"]
+        Login["🔐 /login (RBAC Authentication)"]
         
         Home --> Portfolio
         Home --> Commissions
@@ -36,12 +37,18 @@ flowchart TD
         Adoptables --> Contact
     end
 
+    subgraph Security & Routing
+        Proxy["🛡️ proxy.ts (Next.js 16 Route Guard & RBAC)"]
+        Login --> Proxy
+    end
+
     subgraph Admin Backoffice
         AdminDash["📊 /admin (Live KPIs & Recent Inquiries)"]
         AdminPortfolio["🖼️ /admin/portfolio (Upload Art & Done Commissions)"]
         AdminAdoptables["👾 /admin/adoptables (Inventory & Status CRUD)"]
         AdminCommissions["📝 /admin/commissions (Client Requests & Pricing Tiers)"]
 
+        Proxy -- "role === 'admin'" --> AdminDash
         AdminDash --> AdminPortfolio
         AdminDash --> AdminAdoptables
         AdminDash --> AdminCommissions
@@ -56,6 +63,7 @@ flowchart TD
         AdminPortfolio <--> DB
         AdminAdoptables <--> DB
         AdminCommissions <--> DB
+        Login <--> DB
         Contact --> DB
         Portfolio <--> DB
         Commissions <--> DB
@@ -70,7 +78,16 @@ flowchart TD
 - **Adoptables Marketplace (`/adoptables`)**: Collectors filter original character sheets by status (`available`, `pending`, `sold`). Clicking **"Claim"** directs the collector to `/contact` with the character name prefilled.
 - **Inquiry & Order Submission (`/contact`)**: Powered by React 19 `useActionState` and Next.js Server Actions, storing requests directly in MongoDB Atlas for review in the Admin Panel.
 
-### 2. Admin & Business Management Flows (`/admin`)
+### 2. Authentication & Role-Based Access Control (`/login` & `proxy.ts`)
+
+- **Scalable User Model (`models/User.ts`)**: Supports `role: "admin" | "client"` and password hashing via Node.js native `crypto.scrypt` (`salt:hash`).
+- **Auto-Bootstrap Admin**: On first login at `/login`, if no admin user exists in MongoDB Atlas yet and the credentials match `ADMIN_EMAIL` and `ADMIN_PASSWORD`, the system automatically provisions the Admin account in MongoDB.
+- **Stateless Signed Sessions (`lib/session-token.ts` & `lib/auth.ts`)**: Uses Web Crypto API (`HMAC-SHA256`) stored in an `httpOnly` cookie (`lucyart_session`).
+- **Defense-in-Depth Protection**:
+  - **Next.js 16 `proxy.ts`**: Intercepts `/admin/:path*`, redirecting unauthenticated visitors to `/login` and restricting `client` roles from accessing `/admin`.
+  - **Server Action Guards (`requireAdmin()`)**: Every mutation action and the `/api/cloudinary/sign` endpoint verify admin privileges on the server.
+
+### 3. Admin & Business Management Flows (`/admin`)
 
 - **Dashboard Overview (`/admin`)**: Real-time KPIs from MongoDB Atlas (Portfolio & Completed Commissions count, Active Adoptables, Pending Inquiries), environment health status indicators, and recent client requests.
 - **Portfolio & Completed Commissions Manager (`/admin/portfolio`)**: Drag-and-drop uploader (`ImageUploader`) using signed direct uploads to **Cloudinary** (bypassing Vercel's 4.5MB serverless body limit). Artworks marked as **Completed Client Commissions** can optionally credit the client (`@ClientHandle`) and automatically link as visual examples to any Commission Tier.
@@ -85,7 +102,7 @@ flowchart TD
 
 | Technology | Purpose |
 | :--- | :--- |
-| **Next.js 16 (App Router)** | Fullstack React framework with Server Components, Server Actions, and Route Handlers |
+| **Next.js 16 (App Router)** | Fullstack React framework with Server Components, Server Actions, Route Handlers, and `proxy.ts` |
 | **React 19** | Modern concurrent UI and `useActionState` form handling |
 | **TypeScript 5** | Strict end-to-end typing across components, actions, and Mongoose models |
 | **Tailwind CSS v4 & Custom CSS** | Design token system with CSS custom properties, holographic shimmers, and dark cyber-neon aesthetic |
@@ -101,21 +118,23 @@ flowchart TD
 lucyart/
 ├── app/
 │   ├── actions/                  # Next.js Server Actions
-│   │   ├── adoptables.ts         # Adoptables CRUD & status updates
+│   │   ├── adoptables.ts         # Adoptables CRUD & status updates (Admin-protected)
+│   │   ├── auth.ts               # Login (with Admin bootstrap) & Logout actions
 │   │   ├── commissions.ts        # Commission Tiers CRUD & Inquiries management
 │   │   ├── contact.ts            # Public contact / order form handler
 │   │   └── portfolio.ts          # Portfolio & completed commissions CRUD
-│   ├── admin/                    # Admin backoffice routes
+│   ├── admin/                    # Protected Admin backoffice routes
 │   │   ├── adoptables/page.tsx   # Adoptable inventory management
 │   │   ├── commissions/page.tsx  # Commission requests & tier manager
 │   │   ├── portfolio/page.tsx    # Portfolio & completed commissions uploader
-│   │   ├── layout.tsx            # Admin layout with sidebar navigation
+│   │   ├── layout.tsx            # Admin layout with session verification & Logout
 │   │   └── page.tsx              # Admin KPI dashboard
 │   ├── api/
-│   │   └── cloudinary/sign/      # POST endpoint for signed Cloudinary uploads
+│   │   └── cloudinary/sign/      # Admin-protected POST endpoint for Cloudinary signatures
 │   ├── adoptables/page.tsx       # Public adoptables catalog page
 │   ├── commissions/page.tsx      # Commission tier pricing & examples
 │   ├── contact/page.tsx          # Contact & commission order intake form
+│   ├── login/page.tsx            # Authentication login portal
 │   ├── portfolio/page.tsx        # Artwork & completed commissions gallery
 │   ├── terms/page.tsx            # Comprehensive Terms of Service (TOS)
 │   ├── globals.css               # Global CSS variables, animations & utilities
@@ -130,18 +149,23 @@ lucyart/
 │   ├── ContactFormClient.tsx     # Interactive contact form with prefill support
 │   ├── Footer.tsx                # Footer with social links & copyright notice
 │   ├── ImageUploader.tsx         # Drag & drop direct Cloudinary uploader
+│   ├── LoginFormClient.tsx       # Interactive login form component
 │   ├── Navbar.tsx                # Main navigation bar
 │   └── PortfolioGalleryClient.tsx# Interactive category filter & Lightbox modal
 ├── lib/
+│   ├── auth.ts                   # Password hashing (scrypt), cookies & RBAC guards
 │   ├── cloudinary.ts             # SHA-1 signature generator & asset deletion helper
-│   └── mongodb.ts                # Mongoose connection pooling helper
+│   ├── mongodb.ts                # Mongoose connection pooling helper
+│   └── session-token.ts          # Edge-compatible HMAC-SHA256 session signer
 ├── models/
 │   ├── Adoptable.ts              # Mongoose model for Adoptables
 │   ├── CommissionTier.ts         # Mongoose model for Commission Pricing Tiers
 │   ├── Inquiry.ts                # Mongoose model for Client Orders & Inquiries
-│   └── PortfolioItem.ts          # Mongoose model for Portfolio & Done Commissions
+│   ├── PortfolioItem.ts          # Mongoose model for Portfolio & Done Commissions
+│   └── User.ts                   # Mongoose model for Users (Admin & Client roles)
 ├── types/
 │   └── index.ts                  # Shared TypeScript interfaces
+├── proxy.ts                      # Next.js 16 route protection & RBAC redirect proxy
 ├── .env.example                  # Template for environment variables
 └── README.md                     # Project documentation
 ```
@@ -161,6 +185,11 @@ MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/lucyart?re
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+# Authentication & Initial Admin Bootstrap
+AUTH_SECRET=replace_with_a_long_random_secret_string
+ADMIN_EMAIL=admin@lucyart.com
+ADMIN_PASSWORD=change_this_strong_password
 ```
 
 ### 2. Local Development
@@ -174,11 +203,12 @@ npm run dev
 ```
 
 - Public Website: [http://localhost:3000](http://localhost:3000)
+- Login Portal: [http://localhost:3000/login](http://localhost:3000/login)
 - Admin Dashboard: [http://localhost:3000/admin](http://localhost:3000/admin)
 
 ### 3. Deploying to Vercel
 1. Push the repository to GitHub / GitLab.
 2. Import the project in [Vercel](https://vercel.com/new).
-3. Add `MONGODB_URI`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in **Vercel Project Settings → Environment Variables**.
+3. Add `MONGODB_URI`, `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `AUTH_SECRET`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in **Vercel Project Settings → Environment Variables**.
 4. In **MongoDB Atlas → Network Access**, allow access from anywhere (`0.0.0.0/0`) so Vercel serverless functions can connect.
-5. Deploy!
+5. Deploy and sign in at `/login` with your configured `ADMIN_EMAIL` and `ADMIN_PASSWORD`.

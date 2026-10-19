@@ -5,6 +5,7 @@ import dbConnect, { isDbConfigured } from "@/lib/mongodb";
 import PortfolioItemModel from "@/models/PortfolioItem";
 import CommissionTierModel from "@/models/CommissionTier";
 import { deleteFromCloudinary } from "@/lib/cloudinary";
+import { requireAdmin } from "@/lib/auth";
 import { PortfolioItem } from "@/types";
 
 const FALLBACK_PORTFOLIO: PortfolioItem[] = [
@@ -86,6 +87,7 @@ export async function savePortfolioItem(formData: FormData): Promise<{
     message: string;
 }> {
     try {
+        await requireAdmin();
         await dbConnect();
 
         const id = (formData.get("id") as string | null)?.trim() || "";
@@ -188,6 +190,7 @@ export async function deletePortfolioItem(id: string): Promise<{
     message: string;
 }> {
     try {
+        await requireAdmin();
         await dbConnect();
         const item = await PortfolioItemModel.findById(id);
 

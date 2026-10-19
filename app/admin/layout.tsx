@@ -1,27 +1,57 @@
 import React from "react";
 import Link from "next/link";
-import "../globals.css"; // Aseguramos que tome los estilos globales
+import { redirect } from "next/navigation";
+import "../globals.css";
+import { getSession } from "@/lib/auth";
+import { logoutAction } from "@/app/actions/auth";
 
 export const metadata = {
     title: "Admin Panel | LucyArt",
 };
 
-export default function AdminLayout({
+export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const session = await getSession();
+
+    if (!session || session.role !== "admin") {
+        redirect("/login");
+    }
+
     return (
         <div className="admin-layout">
             {/* Sidebar Lateral */}
             <aside className="admin-sidebar">
-                <div style={{ padding: "0 24px", marginBottom: "40px" }}>
+                <div style={{ padding: "0 24px", marginBottom: "28px" }}>
                     <h2
                         className="gradient-text"
-                        style={{ fontSize: "1.5rem", margin: 0 }}
+                        style={{ fontSize: "1.5rem", margin: "0 0 8px 0" }}
                     >
                         Lucy Admin
                     </h2>
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                            flexWrap: "wrap",
+                        }}
+                    >
+                        <span
+                            style={{
+                                fontSize: "0.85rem",
+                                color: "var(--white)",
+                                fontWeight: 700,
+                            }}
+                        >
+                            {session.name}
+                        </span>
+                        <span className="tag available">
+                            {session.role}
+                        </span>
+                    </div>
                 </div>
 
                 <nav
@@ -74,15 +104,19 @@ export default function AdminLayout({
                     >
                         👁️ View Live Site
                     </Link>
-                    <button
-                        className="btn btn-danger"
-                        style={{
-                            justifyContent: "flex-start",
-                            marginTop: "auto",
-                        }}
-                    >
-                        🚪 Logout
-                    </button>
+
+                    <form action={logoutAction} style={{ width: "100%" }}>
+                        <button
+                            type="submit"
+                            className="btn btn-danger"
+                            style={{
+                                width: "100%",
+                                justifyContent: "flex-start",
+                            }}
+                        >
+                            🚪 Logout
+                        </button>
+                    </form>
                 </nav>
             </aside>
 

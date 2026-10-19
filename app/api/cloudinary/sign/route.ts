@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createUploadSignature } from "@/lib/cloudinary";
+import { requireAdmin } from "@/lib/auth";
 
 const ALLOWED_FOLDERS = new Set([
     "lucyart/portfolio",
@@ -9,6 +10,8 @@ const ALLOWED_FOLDERS = new Set([
 
 export async function POST(request: Request) {
     try {
+        await requireAdmin();
+
         const body = (await request.json().catch(() => ({}))) as {
             folder?: string;
         };
@@ -24,6 +27,7 @@ export async function POST(request: Request) {
             error instanceof Error
                 ? error.message
                 : "Failed to generate upload signature";
-        return NextResponse.json({ error: message }, { status: 500 });
+        const status = message.includes("Unauthorized") ? 401 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

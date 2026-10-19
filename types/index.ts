@@ -1,3 +1,24 @@
+// --- Authentication & Users (RBAC) ---
+export type UserRole = "admin" | "client";
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    avatarUrl?: string;
+    isActive: boolean;
+    createdAt?: string;
+}
+
+export interface SessionUser {
+    userId: string;
+    name: string;
+    email: string;
+    role: UserRole;
+    expiresAt: number;
+}
+
 // --- Adoptables ---
 export type AdoptableStatus = "available" | "pending" | "sold";
 
@@ -37,10 +58,14 @@ export interface PortfolioItem {
 }
 
 // --- Commissions ---
+export type CommissionTierStatus = "open" | "waitlist" | "closed";
+
 export interface CommissionTier {
     id: string;
     title: string;
     priceBase: number;
+    status: CommissionTierStatus;
+    categoryMatch?: string;
     description: string;
     features: string[];
     exampleImages: string[];
@@ -62,6 +87,7 @@ export type InquiryStatus =
 
 export interface Inquiry {
     id: string;
+    userId?: string; // Optional link to registered client User
     name: string;
     email: string;
     subject: InquirySubject;

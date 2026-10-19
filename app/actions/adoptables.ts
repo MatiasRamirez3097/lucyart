@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import dbConnect, { isDbConfigured } from "@/lib/mongodb";
 import AdoptableModel from "@/models/Adoptable";
 import { deleteFromCloudinary } from "@/lib/cloudinary";
+import { requireAdmin } from "@/lib/auth";
 import { Adoptable, AdoptableStatus } from "@/types";
 
 const FALLBACK_ADOPTABLES: Adoptable[] = [
@@ -70,6 +71,7 @@ export async function saveAdoptable(formData: FormData): Promise<{
     message: string;
 }> {
     try {
+        await requireAdmin();
         await dbConnect();
 
         const id = (formData.get("id") as string | null)?.trim() || "";
@@ -151,6 +153,7 @@ export async function updateAdoptableStatus(
     status: AdoptableStatus,
 ): Promise<{ success: boolean; message: string }> {
     try {
+        await requireAdmin();
         await dbConnect();
         await AdoptableModel.findByIdAndUpdate(id, { status });
 
@@ -177,6 +180,7 @@ export async function deleteAdoptable(id: string): Promise<{
     message: string;
 }> {
     try {
+        await requireAdmin();
         await dbConnect();
         const item = await AdoptableModel.findById(id);
         if (!item) {

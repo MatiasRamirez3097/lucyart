@@ -1,9 +1,12 @@
 import mongoose, { Schema, Model } from "mongoose";
+import { CommissionTierStatus } from "@/types";
 
 export interface ICommissionTierDocument {
     _id: mongoose.Types.ObjectId;
     title: string;
     priceBase: number;
+    status: CommissionTierStatus;
+    categoryMatch?: string;
     description: string;
     features: string[];
     exampleImages: string[];
@@ -23,6 +26,16 @@ const CommissionTierSchema = new Schema<ICommissionTierDocument>(
             type: Number,
             required: [true, "Base price is required"],
             min: 0,
+        },
+        status: {
+            type: String,
+            enum: ["open", "waitlist", "closed"],
+            default: "open",
+        },
+        categoryMatch: {
+            type: String,
+            default: "",
+            trim: true,
         },
         description: {
             type: String,
