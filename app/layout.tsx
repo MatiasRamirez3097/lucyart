@@ -6,6 +6,8 @@ import { getSiteSettings } from "@/app/actions/settings";
 import { Metadata } from "next";
 import React from "react";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
     title: "LucyArt | Digital Art Portfolio, Commissions & Adoptables",
     description:

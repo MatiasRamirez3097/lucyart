@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from "react";
 import { DiscordConfig, SiteSettings, SocialLinkItem } from "@/types";
 import { saveSiteSettings } from "@/app/actions/settings";
+import { buildDiscordHref } from "@/components/DiscordFloatingButton";
 
 interface AdminSettingsClientProps {
     initialSettings: SiteSettings;
@@ -252,6 +253,23 @@ export default function AdminSettingsClient({
                                 }
                             />
                         </div>
+                    </div>
+
+                    <div
+                        style={{
+                            marginTop: "16px",
+                            padding: "10px 14px",
+                            borderRadius: "10px",
+                            background: "rgba(0, 245, 255, 0.06)",
+                            border: "1px solid var(--border-cyan)",
+                            fontSize: "0.85rem",
+                            color: "var(--muted)",
+                        }}
+                    >
+                        🔗 <strong>Resolved Floating Button URL:</strong>{" "}
+                        <code style={{ color: "var(--cyan)" }}>
+                            {buildDiscordHref(discord.url, discord.username)}
+                        </code>
                     </div>
                 </div>
 
