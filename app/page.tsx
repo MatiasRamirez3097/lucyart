@@ -12,11 +12,14 @@ export default async function Home() {
         getPortfolioItems(),
     ]);
 
-    const featuredArtworks = portfolioItems.filter((item) => item.featured);
+    const sfwPortfolio = portfolioItems.filter((item) => !item.isNsfw);
+    const sfwAdoptables = adoptables.filter((item) => !item.isNsfw);
+
+    const featuredArtworks = sfwPortfolio.filter((item) => item.featured);
     const showcaseArtworks =
         featuredArtworks.length > 0
             ? featuredArtworks.slice(0, 4)
-            : portfolioItems.slice(0, 4);
+            : sfwPortfolio.slice(0, 4);
 
     return (
         <section className="section">
@@ -192,7 +195,7 @@ export default async function Home() {
                         </Link>
                     </div>
                     <div className="grid-3">
-                        {adoptables.slice(0, 3).map((item) => (
+                        {sfwAdoptables.slice(0, 3).map((item) => (
                             <AdoptableCard key={item.id} adoptable={item} />
                         ))}
                     </div>

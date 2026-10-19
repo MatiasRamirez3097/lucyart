@@ -55,8 +55,12 @@ export default function TermsPage() {
                                 for character design.
                             </li>
                             <li>
-                                I will not draw: NSFW, extreme gore, mecha
-                                (complex), or hateful imagery.
+                                <strong>🔞 NSFW / 18+ Content:</strong> NSFW
+                                commissions and adoptables are strictly
+                                restricted to clients aged{" "}
+                                <strong>18 years or older</strong>. I will not
+                                draw extreme gore, complex mecha, or hateful
+                                imagery.
                             </li>
                             <li>
                                 Communication will be done via email or the

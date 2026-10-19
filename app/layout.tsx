@@ -2,6 +2,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DiscordFloatingButton from "@/components/DiscordFloatingButton";
+import NsfwProvider from "@/components/NsfwProvider";
 import { getSiteSettings } from "@/app/actions/settings";
 import { Metadata } from "next";
 import React from "react";
@@ -24,10 +25,12 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     return (
         <html lang="en">
             <body>
-                <Navbar />
-                <main className="min-h-screen">{children}</main>
-                <Footer socialLinks={settings.socialLinks} />
-                <DiscordFloatingButton discord={settings.discord} />
+                <NsfwProvider>
+                    <Navbar />
+                    <main className="min-h-screen">{children}</main>
+                    <Footer socialLinks={settings.socialLinks} />
+                    <DiscordFloatingButton discord={settings.discord} />
+                </NsfwProvider>
             </body>
         </html>
     );

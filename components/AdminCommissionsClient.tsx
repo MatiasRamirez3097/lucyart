@@ -63,6 +63,8 @@ export default function AdminCommissionsClient({
         "1 Character\nSimple Background\nPersonal Use",
     );
     const [exampleImages, setExampleImages] = useState<string[]>([]);
+    const [isNsfw, setIsNsfw] = useState<boolean>(false);
+    const [nsfwAvailable, setNsfwAvailable] = useState<boolean>(false);
     const [order, setOrder] = useState<string>(
         String(initialTiers.length + 1),
     );
@@ -82,6 +84,8 @@ export default function AdminCommissionsClient({
         setDescription("");
         setFeaturesText("1 Character\nSimple Background\nPersonal Use");
         setExampleImages([]);
+        setIsNsfw(false);
+        setNsfwAvailable(false);
         setOrder(String(initialTiers.length + 1));
         setTempUploadedUrl("");
     }
@@ -95,6 +99,8 @@ export default function AdminCommissionsClient({
         setDescription(tier.description);
         setFeaturesText((tier.features || []).join("\n"));
         setExampleImages(tier.exampleImages || []);
+        setIsNsfw(Boolean(tier.isNsfw));
+        setNsfwAvailable(Boolean(tier.nsfwAvailable || tier.isNsfw));
         setOrder(String(tier.order ?? 1));
         setActiveTab("tiers");
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -120,6 +126,8 @@ export default function AdminCommissionsClient({
         formData.set("description", description);
         formData.set("features", featuresText);
         formData.set("exampleImages", exampleImages.join("\n"));
+        formData.set("isNsfw", String(isNsfw));
+        formData.set("nsfwAvailable", String(isNsfw ? true : nsfwAvailable));
         formData.set("order", order);
 
         startTransition(async () => {
@@ -135,7 +143,12 @@ export default function AdminCommissionsClient({
 
     function handleQuickUpdate(
         tierId: string,
-        updates: { priceBase?: number; status?: CommissionTierStatus },
+        updates: {
+            priceBase?: number;
+            status?: CommissionTierStatus;
+            isNsfw?: boolean;
+            nsfwAvailable?: boolean;
+        },
     ) {
         startTransition(async () => {
             const res = await updateCommissionTierQuick(tierId, updates);
@@ -418,6 +431,73 @@ export default function AdminCommissionsClient({
                                             ))}
                                         </div>
 
+                                        {/* Quick NSFW Options Toggle */}
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                gap: "6px",
+                                                alignItems: "center",
+                                                flexWrap: "wrap",
+                                            }}
+                                        >
+                                            <span
+                                                style={{
+                                                    fontSize: "0.75rem",
+                                                    color: "var(--muted)",
+                                                }}
+                                            >
+                                                18+ Options:
+                                            </span>
+                                            <button
+                                                type="button"
+                                                disabled={isPending}
+                                                onClick={() =>
+                                                    handleQuickUpdate(tier.id, {
+                                                        nsfwAvailable:
+                                                            !tier.nsfwAvailable,
+                                                    })
+                                                }
+                                                className={`tag ${
+                                                    tier.nsfwAvailable ||
+                                                    tier.isNsfw
+                                                        ? "pink"
+                                                        : ""
+                                                }`}
+                                                style={{
+                                                    cursor: "pointer",
+                                                    opacity:
+                                                        tier.nsfwAvailable ||
+                                                        tier.isNsfw
+                                                            ? 1
+                                                            : 0.45,
+                                                }}
+                                                title="Toggle whether clients can request a NSFW (18+) version of this commission tier"
+                                            >
+                                                🔞 Accepts NSFW
+                                            </button>
+                                            <button
+                                                type="button"
+                                                disabled={isPending}
+                                                onClick={() =>
+                                                    handleQuickUpdate(tier.id, {
+                                                        isNsfw: !tier.isNsfw,
+                                                    })
+                                                }
+                                                className={`tag ${
+                                                    tier.isNsfw ? "sold" : ""
+                                                }`}
+                                                style={{
+                                                    cursor: "pointer",
+                                                    opacity: tier.isNsfw
+                                                        ? 1
+                                                        : 0.45,
+                                                }}
+                                                title="Toggle whether this entire tier is hidden unless the visitor enables NSFW (18+)"
+                                            >
+                                                🔞 18+ Exclusive Tier
+                                            </button>
+                                        </div>
+
                                         <p
                                             style={{
                                                 color: "var(--muted)",
@@ -692,6 +772,86 @@ export default function AdminCommissionsClient({
                                     value={order}
                                     onChange={(e) => setOrder(e.target.value)}
                                 />
+                            </div>
+
+                            {/* NSFW (18+) Configuration Box */}
+                            <div
+                                style={{
+                                    gridColumn: "1 / -1",
+                                    padding: "16px 20px",
+                                    borderRadius: "12px",
+                                    background:
+                                        isNsfw || nsfwAvailable
+                                            ? "rgba(255, 45, 120, 0.08)"
+                                            : "rgba(255, 255, 255, 0.03)",
+                                    border: `1px solid ${
+                                        isNsfw || nsfwAvailable
+                                            ? "rgba(255, 45, 120, 0.4)"
+                                            : "var(--border)"
+                                    }`,
+                                    display: "flex",
+                                    gap: "24px",
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <label
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "10px",
+                                        cursor: "pointer",
+                                        fontWeight: 700,
+                                        color: "var(--pink-light)",
+                                    }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={nsfwAvailable || isNsfw}
+                                        onChange={(e) =>
+                                            setNsfwAvailable(e.target.checked)
+                                        }
+                                        disabled={isNsfw}
+                                        style={{
+                                            width: "18px",
+                                            height: "18px",
+                                            accentColor: "var(--pink)",
+                                        }}
+                                    />
+                                    🔞 Accepts NSFW (18+) Requests (Shows
+                                    &ldquo;NSFW Version Available&rdquo; badge
+                                    on pricing card)
+                                </label>
+
+                                <label
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "10px",
+                                        cursor: "pointer",
+                                        fontWeight: 700,
+                                        color: "var(--pink)",
+                                    }}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={isNsfw}
+                                        onChange={(e) => {
+                                            setIsNsfw(e.target.checked);
+                                            if (e.target.checked) {
+                                                setNsfwAvailable(true);
+                                            }
+                                        }}
+                                        style={{
+                                            width: "18px",
+                                            height: "18px",
+                                            accentColor: "var(--pink)",
+                                        }}
+                                    />
+                                    🔞 Exclusive 18+ NSFW Tier (Entire pricing
+                                    card stays hidden unless visitor enables
+                                    NSFW)
+                                </label>
                             </div>
 
                             <div

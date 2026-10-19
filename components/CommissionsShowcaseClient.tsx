@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { CommissionTier, PortfolioItem } from "@/types";
+import { useNsfw } from "@/components/NsfwProvider";
+import NsfwToggle from "@/components/NsfwToggle";
 
 interface CommissionsShowcaseClientProps {
     tiers: CommissionTier[];
@@ -16,22 +18,36 @@ interface TierIllustration {
     isCommission?: boolean;
     clientName?: string;
     description?: string;
+    isNsfw?: boolean;
 }
 
 export default function CommissionsShowcaseClient({
     tiers,
     portfolioItems,
 }: CommissionsShowcaseClientProps) {
+    const { showNsfw } = useNsfw();
     const [activeModalTier, setActiveModalTier] =
         useState<CommissionTier | null>(null);
     const [activeSlideIndex, setActiveSlideIndex] = useState<number>(0);
 
-    // Build rich illustration list for a given Commission Tier
+    // Filter tiers: hide exclusive NSFW tiers unless showNsfw is enabled
+    const visibleTiers = tiers.filter((tier) =>
+        showNsfw ? true : !tier.isNsfw,
+    );
+
+    const hiddenNsfwTiersCount = tiers.filter((t) => Boolean(t.isNsfw)).length;
+    const nsfwSampleWorksCount = portfolioItems.filter((p) =>
+        Boolean(p.isNsfw),
+    ).length;
+
+    // Build rich illustration list for a given Commission Tier, respecting NSFW filter
     function getIllustrationsForTier(tier: CommissionTier): TierIllustration[] {
         const map = new Map<string, TierIllustration>();
 
         // 1. Portfolio items explicitly linked via commissionTierId or matching categoryMatch
         for (const item of portfolioItems) {
+            if (item.isNsfw && !showNsfw) continue;
+
             const isLinked = item.commissionTierId === tier.id;
             const isCategoryMatched =
                 Boolean(tier.categoryMatch) &&
@@ -46,6 +62,7 @@ export default function CommissionsShowcaseClient({
                     isCommission: item.isCommission,
                     clientName: item.clientName,
                     description: item.description,
+                    isNsfw: Boolean(item.isNsfw),
                 });
             }
         }
@@ -58,6 +75,7 @@ export default function CommissionsShowcaseClient({
                     (p) => p.imageUrl === url,
                 );
                 if (matchedPortfolio) {
+                    if (matchedPortfolio.isNsfw && !showNsfw) continue;
                     map.set(url, {
                         imageUrl: url,
                         title: matchedPortfolio.title,
@@ -65,12 +83,15 @@ export default function CommissionsShowcaseClient({
                         isCommission: matchedPortfolio.isCommission,
                         clientName: matchedPortfolio.clientName,
                         description: matchedPortfolio.description,
+                        isNsfw: Boolean(matchedPortfolio.isNsfw),
                     });
                 } else {
+                    if (tier.isNsfw && !showNsfw) continue;
                     map.set(url, {
                         imageUrl: url,
                         title: `${tier.title} Sample`,
                         category: tier.categoryMatch || tier.title,
+                        isNsfw: Boolean(tier.isNsfw),
                     });
                 }
             }
@@ -84,17 +105,62 @@ export default function CommissionsShowcaseClient({
         setActiveSlideIndex(initialIndex);
     }
 
-    const modalIllustrations = activeModalTier
-        ? getIllustrationsForTier(activeModalTier)
+    const effectiveModalTier =
+        activeModalTier && (!activeModalTier.isNsfw || showNsfw)
+            ? activeModalTier
+            : null;
+
+    const modalIllustrations = effectiveModalTier
+        ? getIllustrationsForTier(effectiveModalTier)
         : [];
     const currentSlide =
         modalIllustrations[activeSlideIndex] || modalIllustrations[0] || null;
 
+    const completedCommissions = portfolioItems.filter(
+        (item) => Boolean(item.isCommission) && (showNsfw ? true : !item.isNsfw),
+    );
+
     return (
         <>
+            {/* Top Bar with 18+ NSFW Control */}
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "12px",
+                    marginBottom: "28px",
+                }}
+            >
+                <div style={{ color: "var(--muted)", fontSize: "0.9rem" }}>
+                    {!showNsfw && hiddenNsfwTiersCount > 0 ? (
+                        <span>
+                            🔞{" "}
+                            <strong>
+                                {hiddenNsfwTiersCount} exclusive NSFW (18+)
+                                commission tier
+                                {hiddenNsfwTiersCount > 1 ? "s" : ""}
+                            </strong>{" "}
+                            and 18+ sample illustrations are currently hidden.
+                        </span>
+                    ) : (
+                        <span>
+                            Select a commission tier below to inspect finished
+                            examples or place an order.
+                        </span>
+                    )}
+                </div>
+
+                <NsfwToggle
+                    nsfwCount={hiddenNsfwTiersCount + nsfwSampleWorksCount}
+                    label="Show NSFW (18+) Options & Examples"
+                />
+            </div>
+
             {/* Tiers Grid */}
             <div className="grid-3" style={{ alignItems: "stretch" }}>
-                {tiers.map((tier) => {
+                {visibleTiers.map((tier) => {
                     const illustrations = getIllustrationsForTier(tier);
                     const tierStatus = tier.status || "open";
                     const isClosed = tierStatus === "closed";
@@ -111,6 +177,9 @@ export default function CommissionsShowcaseClient({
                                 display: "flex",
                                 flexDirection: "column",
                                 gap: "16px",
+                                border: tier.isNsfw
+                                    ? "1px solid rgba(255, 45, 120, 0.55)"
+                                    : undefined,
                             }}
                         >
                             {/* Header Badges */}
@@ -120,9 +189,26 @@ export default function CommissionsShowcaseClient({
                                     justifyContent: "space-between",
                                     alignItems: "center",
                                     gap: "8px",
+                                    flexWrap: "wrap",
                                 }}
                             >
-                                <span className="tag pink">{tier.title}</span>
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: "6px",
+                                        alignItems: "center",
+                                        flexWrap: "wrap",
+                                    }}
+                                >
+                                    <span className="tag pink">
+                                        {tier.title}
+                                    </span>
+                                    {tier.isNsfw && (
+                                        <span className="tag sold">
+                                            🔞 18+ Exclusive
+                                        </span>
+                                    )}
+                                </div>
                                 <span
                                     className={`tag ${
                                         tierStatus === "open"
@@ -161,6 +247,65 @@ export default function CommissionsShowcaseClient({
                                 <span style={{ color: "var(--muted)" }}>
                                     USD / Base
                                 </span>
+                            </div>
+
+                            {/* NSFW Availability Notice on Pricing Card */}
+                            <div>
+                                {tier.isNsfw ? (
+                                    <span
+                                        style={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: "6px",
+                                            fontSize: "0.75rem",
+                                            fontWeight: 700,
+                                            padding: "4px 10px",
+                                            borderRadius: "999px",
+                                            background:
+                                                "rgba(255, 45, 120, 0.16)",
+                                            color: "var(--pink-light)",
+                                            border: "1px solid rgba(255, 45, 120, 0.4)",
+                                        }}
+                                    >
+                                        🔞 Adult (18+) Commission Tier
+                                    </span>
+                                ) : tier.nsfwAvailable ? (
+                                    <span
+                                        style={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: "6px",
+                                            fontSize: "0.75rem",
+                                            fontWeight: 700,
+                                            padding: "4px 10px",
+                                            borderRadius: "999px",
+                                            background:
+                                                "rgba(255, 45, 120, 0.12)",
+                                            color: "var(--pink-light)",
+                                            border: "1px solid rgba(255, 45, 120, 0.3)",
+                                        }}
+                                    >
+                                        🔞 NSFW (18+) Version Available
+                                    </span>
+                                ) : (
+                                    <span
+                                        style={{
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: "6px",
+                                            fontSize: "0.75rem",
+                                            fontWeight: 700,
+                                            padding: "4px 10px",
+                                            borderRadius: "999px",
+                                            background:
+                                                "rgba(0, 245, 255, 0.08)",
+                                            color: "var(--cyan)",
+                                            border: "1px solid rgba(0, 245, 255, 0.25)",
+                                        }}
+                                    >
+                                        🛡️ SFW Only (All Ages)
+                                    </span>
+                                )}
                             </div>
 
                             <p
@@ -250,9 +395,33 @@ export default function CommissionsShowcaseClient({
                                                                     "8px",
                                                                 objectFit:
                                                                     "cover",
-                                                                border: "1px solid var(--border-cyan)",
+                                                                border: ill.isNsfw
+                                                                    ? "1px solid var(--pink)"
+                                                                    : "1px solid var(--border-cyan)",
                                                             }}
                                                         />
+                                                        {ill.isNsfw && (
+                                                            <span
+                                                                style={{
+                                                                    position:
+                                                                        "absolute",
+                                                                    top: "2px",
+                                                                    right: "2px",
+                                                                    background:
+                                                                        "rgba(255,45,120,0.9)",
+                                                                    color: "#fff",
+                                                                    fontSize:
+                                                                        "0.55rem",
+                                                                    fontWeight: 800,
+                                                                    padding:
+                                                                        "1px 4px",
+                                                                    borderRadius:
+                                                                        "4px",
+                                                                }}
+                                                            >
+                                                                18+
+                                                            </span>
+                                                        )}
                                                     </button>
                                                 ))}
                                         </div>
@@ -315,8 +484,131 @@ export default function CommissionsShowcaseClient({
                 })}
             </div>
 
+            {/* Recently Completed Commissions Showcase (Filtered by NSFW state) */}
+            {completedCommissions.length > 0 && (
+                <div style={{ marginTop: "80px" }}>
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: "16px",
+                            marginBottom: "28px",
+                        }}
+                    >
+                        <div>
+                            <h2 style={{ marginBottom: "4px" }}>
+                                ✨ Recently Completed Commissions
+                            </h2>
+                            <p
+                                style={{
+                                    color: "var(--muted)",
+                                    fontSize: "0.95rem",
+                                }}
+                            >
+                                Real examples of finished commissions delivered
+                                to clients.
+                            </p>
+                        </div>
+                        <Link href="/portfolio" className="btn btn-outline">
+                            View Full Portfolio →
+                        </Link>
+                    </div>
+
+                    <div className="grid-4">
+                        {completedCommissions.slice(0, 4).map((work) => (
+                            <div
+                                key={work.id}
+                                className="card holo-card"
+                                style={{ overflow: "hidden" }}
+                            >
+                                <div
+                                    style={{
+                                        position: "relative",
+                                        aspectRatio: "3/4",
+                                        background: "var(--bg-deep)",
+                                    }}
+                                >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                        src={work.imageUrl}
+                                        alt={work.title}
+                                        style={{
+                                            width: "100%",
+                                            height: "100%",
+                                            objectFit: "cover",
+                                        }}
+                                    />
+                                    {work.isNsfw && (
+                                        <div
+                                            style={{
+                                                position: "absolute",
+                                                top: "10px",
+                                                right: "10px",
+                                            }}
+                                        >
+                                            <span className="tag sold">
+                                                🔞 18+
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div
+                                        style={{
+                                            position: "absolute",
+                                            bottom: 0,
+                                            left: 0,
+                                            right: 0,
+                                            padding: "16px",
+                                            background:
+                                                "linear-gradient(to top, rgba(13,6,24,0.95), transparent)",
+                                        }}
+                                    >
+                                        <h3
+                                            style={{
+                                                fontSize: "1rem",
+                                                margin: "0 0 4px 0",
+                                            }}
+                                        >
+                                            {work.title}
+                                        </h3>
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "center",
+                                            }}
+                                        >
+                                            <span
+                                                className="tag cyan"
+                                                style={{
+                                                    fontSize: "0.65rem",
+                                                }}
+                                            >
+                                                {work.category}
+                                            </span>
+                                            {work.clientName && (
+                                                <span
+                                                    style={{
+                                                        fontSize: "0.75rem",
+                                                        color: "var(--pink-light)",
+                                                        fontWeight: 700,
+                                                    }}
+                                                >
+                                                    for {work.clientName}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Interactive Tier Illustrations Modal */}
-            {activeModalTier && (
+            {effectiveModalTier && (
                 <div
                     onClick={() => setActiveModalTier(null)}
                     style={{
@@ -368,7 +660,7 @@ export default function CommissionsShowcaseClient({
                                     }}
                                 >
                                     <h2 style={{ margin: 0 }}>
-                                        {activeModalTier.title}
+                                        {effectiveModalTier.title}
                                     </h2>
                                     <span
                                         style={{
@@ -377,8 +669,14 @@ export default function CommissionsShowcaseClient({
                                             color: "var(--cyan)",
                                         }}
                                     >
-                                        ${activeModalTier.priceBase} USD
+                                        ${effectiveModalTier.priceBase} USD
                                     </span>
+                                    {(effectiveModalTier.isNsfw ||
+                                        effectiveModalTier.nsfwAvailable) && (
+                                        <span className="tag pink">
+                                            🔞 NSFW (18+) Available
+                                        </span>
+                                    )}
                                 </div>
                                 <p
                                     style={{
@@ -387,7 +685,7 @@ export default function CommissionsShowcaseClient({
                                         margin: "4px 0 0 0",
                                     }}
                                 >
-                                    {activeModalTier.description}
+                                    {effectiveModalTier.description}
                                 </p>
                             </div>
 
@@ -398,10 +696,10 @@ export default function CommissionsShowcaseClient({
                                     alignItems: "center",
                                 }}
                             >
-                                {activeModalTier.status !== "closed" && (
+                                {effectiveModalTier.status !== "closed" && (
                                     <Link
                                         href={`/contact?subject=commission&tier=${encodeURIComponent(
-                                            activeModalTier.title,
+                                            effectiveModalTier.title,
                                         )}`}
                                         className="btn btn-primary"
                                         style={{
@@ -435,6 +733,9 @@ export default function CommissionsShowcaseClient({
                                 <p>
                                     No sample illustrations have been linked to
                                     this commission type yet.
+                                    {!showNsfw && nsfwSampleWorksCount > 0
+                                        ? " (Enable the 🔞 Show NSFW switch to view 18+ examples if applicable.)"
+                                        : ""}
                                 </p>
                             </div>
                         ) : (
@@ -553,6 +854,11 @@ export default function CommissionsShowcaseClient({
                                                             : ""}
                                                     </span>
                                                 )}
+                                                {currentSlide.isNsfw && (
+                                                    <span className="tag sold">
+                                                        🔞 NSFW (18+)
+                                                    </span>
+                                                )}
                                             </div>
                                             {currentSlide.description && (
                                                 <p
@@ -603,6 +909,7 @@ export default function CommissionsShowcaseClient({
                                                     border: "none",
                                                     cursor: "pointer",
                                                     flexShrink: 0,
+                                                    position: "relative",
                                                 }}
                                             >
                                                 {/* eslint-disable-next-line @next/next/no-img-element */}

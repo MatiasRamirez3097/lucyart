@@ -6,6 +6,7 @@ import ImageUploader from "@/components/ImageUploader";
 import {
     deleteAdoptable,
     saveAdoptable,
+    toggleAdoptableNsfw,
     updateAdoptableStatus,
 } from "@/app/actions/adoptables";
 
@@ -30,6 +31,7 @@ export default function AdminAdoptablesClient({
     const [imageUrl, setImageUrl] = useState<string>("");
     const [publicId, setPublicId] = useState<string>("");
     const [owner, setOwner] = useState<string>("");
+    const [isNsfw, setIsNsfw] = useState<boolean>(false);
 
     function showToast(type: "success" | "error", text: string) {
         setToast({ type, text });
@@ -45,6 +47,7 @@ export default function AdminAdoptablesClient({
         setImageUrl("");
         setPublicId("");
         setOwner("");
+        setIsNsfw(false);
     }
 
     function handleEdit(item: Adoptable) {
@@ -56,6 +59,7 @@ export default function AdminAdoptablesClient({
         setImageUrl(item.imageUrl);
         setPublicId(item.publicId || "");
         setOwner(item.owner || "");
+        setIsNsfw(Boolean(item.isNsfw));
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -71,6 +75,7 @@ export default function AdminAdoptablesClient({
         formData.set("imageUrl", imageUrl);
         formData.set("publicId", publicId);
         formData.set("owner", owner);
+        formData.set("isNsfw", String(isNsfw));
 
         startTransition(async () => {
             const res = await saveAdoptable(formData);
@@ -86,6 +91,17 @@ export default function AdminAdoptablesClient({
     function handleQuickStatusChange(id: string, nextStatus: AdoptableStatus) {
         startTransition(async () => {
             const res = await updateAdoptableStatus(id, nextStatus);
+            if (res.success) {
+                showToast("success", res.message);
+            } else {
+                showToast("error", res.message);
+            }
+        });
+    }
+
+    function handleQuickNsfwToggle(item: Adoptable) {
+        startTransition(async () => {
+            const res = await toggleAdoptableNsfw(item.id, !item.isNsfw);
             if (res.success) {
                 showToast("success", res.message);
             } else {
@@ -233,6 +249,46 @@ export default function AdminAdoptablesClient({
                         />
                     </div>
 
+                    <div
+                        style={{
+                            gridColumn: "1 / -1",
+                            padding: "14px 18px",
+                            borderRadius: "12px",
+                            background: isNsfw
+                                ? "rgba(255, 45, 120, 0.08)"
+                                : "rgba(255, 255, 255, 0.03)",
+                            border: `1px solid ${
+                                isNsfw
+                                    ? "rgba(255, 45, 120, 0.4)"
+                                    : "var(--border)"
+                            }`,
+                        }}
+                    >
+                        <label
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "10px",
+                                cursor: "pointer",
+                                fontWeight: 700,
+                                color: "var(--pink-light)",
+                            }}
+                        >
+                            <input
+                                type="checkbox"
+                                checked={isNsfw}
+                                onChange={(e) => setIsNsfw(e.target.checked)}
+                                style={{
+                                    width: "18px",
+                                    height: "18px",
+                                    accentColor: "var(--pink)",
+                                }}
+                            />
+                            🔞 NSFW / 18+ Character Design (Hidden unless
+                            visitor enables +18)
+                        </label>
+                    </div>
+
                     <div style={{ gridColumn: "1 / -1" }}>
                         <ImageUploader
                             folder="lucyart/adoptables"
@@ -354,8 +410,20 @@ export default function AdminAdoptablesClient({
                                         />
                                     </td>
                                     <td style={{ padding: "12px 8px" }}>
-                                        <div style={{ fontWeight: "bold" }}>
-                                            {item.title}
+                                        <div
+                                            style={{
+                                                fontWeight: "bold",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "8px",
+                                            }}
+                                        >
+                                            <span>{item.title}</span>
+                                            {item.isNsfw && (
+                                                <span className="tag sold">
+                                                    🔞 18+
+                                                </span>
+                                            )}
                                         </div>
                                         {item.owner && (
                                             <div
@@ -433,6 +501,26 @@ export default function AdminAdoptablesClient({
                                                 justifyContent: "flex-end",
                                             }}
                                         >
+                                            <button
+                                                type="button"
+                                                className={
+                                                    item.isNsfw
+                                                        ? "btn btn-primary"
+                                                        : "btn btn-ghost"
+                                                }
+                                                style={{
+                                                    padding: "6px 10px",
+                                                    fontSize: "0.75rem",
+                                                }}
+                                                disabled={isPending}
+                                                onClick={() =>
+                                                    handleQuickNsfwToggle(item)
+                                                }
+                                            >
+                                                {item.isNsfw
+                                                    ? "🔞 18+"
+                                                    : "🛡️ SFW"}
+                                            </button>
                                             <button
                                                 type="button"
                                                 className="btn btn-outline"

@@ -6,6 +6,7 @@ import ImageUploader from "@/components/ImageUploader";
 import {
     deletePortfolioItem,
     savePortfolioItem,
+    togglePortfolioNsfw,
 } from "@/app/actions/portfolio";
 
 interface AdminPortfolioClientProps {
@@ -46,6 +47,7 @@ export default function AdminPortfolioClient({
     const [clientName, setClientName] = useState<string>("");
     const [commissionTierId, setCommissionTierId] = useState<string>("");
     const [featured, setFeatured] = useState<boolean>(false);
+    const [isNsfw, setIsNsfw] = useState<boolean>(false);
 
     function showToast(type: "success" | "error", text: string) {
         setToast({ type, text });
@@ -63,6 +65,7 @@ export default function AdminPortfolioClient({
         setClientName("");
         setCommissionTierId("");
         setFeatured(false);
+        setIsNsfw(false);
     }
 
     function handleEdit(item: PortfolioItem) {
@@ -76,6 +79,7 @@ export default function AdminPortfolioClient({
         setClientName(item.clientName || "");
         setCommissionTierId(item.commissionTierId || "");
         setFeatured(Boolean(item.featured));
+        setIsNsfw(Boolean(item.isNsfw));
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -93,12 +97,24 @@ export default function AdminPortfolioClient({
         formData.set("clientName", clientName);
         formData.set("commissionTierId", commissionTierId);
         formData.set("featured", String(featured));
+        formData.set("isNsfw", String(isNsfw));
 
         startTransition(async () => {
             const res = await savePortfolioItem(formData);
             if (res.success) {
                 showToast("success", res.message);
                 resetForm();
+            } else {
+                showToast("error", res.message);
+            }
+        });
+    }
+
+    function handleQuickToggleNsfw(item: PortfolioItem) {
+        startTransition(async () => {
+            const res = await togglePortfolioNsfw(item.id, !item.isNsfw);
+            if (res.success) {
+                showToast("success", res.message);
             } else {
                 showToast("error", res.message);
             }
@@ -122,6 +138,7 @@ export default function AdminPortfolioClient({
     const filteredItems = initialItems.filter((item) => {
         if (filter === "ALL") return true;
         if (filter === "COMMISSIONS") return Boolean(item.isCommission);
+        if (filter === "NSFW") return Boolean(item.isNsfw);
         return item.category === filter;
     });
 
@@ -291,6 +308,32 @@ export default function AdminPortfolioClient({
                                 />
                                 ⭐ Feature on Home / Top of Gallery
                             </label>
+
+                            <label
+                                style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "10px",
+                                    cursor: "pointer",
+                                    fontWeight: 700,
+                                    color: "var(--pink-light)",
+                                }}
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={isNsfw}
+                                    onChange={(e) =>
+                                        setIsNsfw(e.target.checked)
+                                    }
+                                    style={{
+                                        width: "18px",
+                                        height: "18px",
+                                        accentColor: "var(--pink)",
+                                    }}
+                                />
+                                🔞 NSFW / 18+ Content (Hidden unless visitor
+                                enables +18)
+                            </label>
                         </div>
 
                         {isCommission && (
@@ -452,6 +495,16 @@ export default function AdminPortfolioClient({
                     ✨ Completed Commissions (
                     {initialItems.filter((i) => i.isCommission).length})
                 </button>
+                <button
+                    type="button"
+                    className={
+                        filter === "NSFW" ? "btn btn-primary" : "btn btn-ghost"
+                    }
+                    style={{ padding: "8px 18px", fontSize: "0.85rem" }}
+                    onClick={() => setFilter("NSFW")}
+                >
+                    🔞 NSFW 18+ ({initialItems.filter((i) => i.isNsfw).length})
+                </button>
                 {CATEGORIES.map((cat) => (
                     <button
                         key={cat}
@@ -478,6 +531,9 @@ export default function AdminPortfolioClient({
                             display: "flex",
                             flexDirection: "column",
                             gap: "12px",
+                            border: item.isNsfw
+                                ? "1px solid rgba(255, 45, 120, 0.45)"
+                                : undefined,
                         }}
                     >
                         <div
@@ -504,23 +560,36 @@ export default function AdminPortfolioClient({
                                     position: "absolute",
                                     top: "10px",
                                     left: "10px",
+                                    right: "10px",
                                     display: "flex",
+                                    justifyContent: "space-between",
                                     gap: "6px",
                                     flexWrap: "wrap",
                                 }}
                             >
-                                <span className="tag cyan">
-                                    {item.category}
-                                </span>
-                                {item.isCommission && (
-                                    <span className="tag pink">
-                                        Commission
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        gap: "6px",
+                                        flexWrap: "wrap",
+                                    }}
+                                >
+                                    <span className="tag cyan">
+                                        {item.category}
                                     </span>
-                                )}
-                                {item.featured && (
-                                    <span className="tag pending">
-                                        ★ Featured
-                                    </span>
+                                    {item.isCommission && (
+                                        <span className="tag pink">
+                                            Commission
+                                        </span>
+                                    )}
+                                    {item.featured && (
+                                        <span className="tag pending">
+                                            ★ Featured
+                                        </span>
+                                    )}
+                                </div>
+                                {item.isNsfw && (
+                                    <span className="tag sold">🔞 18+</span>
                                 )}
                             </div>
                         </div>
@@ -560,8 +629,26 @@ export default function AdminPortfolioClient({
                                 gap: "8px",
                                 marginTop: "auto",
                                 paddingTop: "8px",
+                                flexWrap: "wrap",
                             }}
                         >
+                            <button
+                                type="button"
+                                className={
+                                    item.isNsfw
+                                        ? "btn btn-primary"
+                                        : "btn btn-ghost"
+                                }
+                                style={{
+                                    padding: "8px 12px",
+                                    fontSize: "0.75rem",
+                                }}
+                                onClick={() => handleQuickToggleNsfw(item)}
+                                disabled={isPending}
+                                title="Click to toggle between SFW and NSFW (18+)"
+                            >
+                                {item.isNsfw ? "🔞 NSFW (18+)" : "🛡️ SFW"}
+                            </button>
                             <button
                                 type="button"
                                 className="btn btn-outline"

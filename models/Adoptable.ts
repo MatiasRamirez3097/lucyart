@@ -10,6 +10,7 @@ export interface IAdoptableDocument {
     imageUrl: string;
     publicId?: string;
     owner?: string;
+    isNsfw: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -48,6 +49,10 @@ const AdoptableSchema = new Schema<IAdoptableDocument>(
             type: String,
             default: "",
             trim: true,
+        },
+        isNsfw: {
+            type: Boolean,
+            default: false,
         },
     },
     {

@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { PortfolioItem } from "@/types";
+import { useNsfw } from "@/components/NsfwProvider";
+import NsfwToggle from "@/components/NsfwToggle";
 
 interface PortfolioGalleryClientProps {
     items: PortfolioItem[];
@@ -10,82 +12,126 @@ interface PortfolioGalleryClientProps {
 export default function PortfolioGalleryClient({
     items,
 }: PortfolioGalleryClientProps) {
+    const { showNsfw } = useNsfw();
     const [activeFilter, setActiveFilter] = useState<string>("ALL");
     const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(
         null,
     );
 
-    const uniqueCategories = Array.from(
-        new Set(items.map((i) => i.category).filter(Boolean)),
+    const nsfwCount = items.filter((i) => Boolean(i.isNsfw)).length;
+
+    // First filter by NSFW visibility setting
+    const visibleItems = items.filter((item) =>
+        showNsfw ? true : !item.isNsfw,
     );
 
-    const filteredItems = items.filter((item) => {
+    const uniqueCategories = Array.from(
+        new Set(visibleItems.map((i) => i.category).filter(Boolean)),
+    );
+
+    const filteredItems = visibleItems.filter((item) => {
         if (activeFilter === "ALL") return true;
         if (activeFilter === "COMMISSIONS") return Boolean(item.isCommission);
+        if (activeFilter === "NSFW_ONLY") return Boolean(item.isNsfw);
         return item.category === activeFilter;
     });
 
+    const activeSelectedItem =
+        selectedItem && (!selectedItem.isNsfw || showNsfw)
+            ? selectedItem
+            : null;
+
     return (
         <>
-            {/* Interactive Filter Tabs */}
+            {/* Interactive Filter Tabs + NSFW (18+) Switch */}
             <div
                 style={{
                     display: "flex",
-                    justifyContent: "center",
-                    gap: "12px",
-                    marginBottom: "40px",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: "16px",
+                    marginBottom: "36px",
                     flexWrap: "wrap",
                 }}
             >
-                <button
-                    type="button"
-                    onClick={() => setActiveFilter("ALL")}
-                    className={
-                        activeFilter === "ALL"
-                            ? "btn btn-outline"
-                            : "btn btn-ghost"
-                    }
-                    style={
-                        activeFilter === "ALL"
-                            ? { background: "rgba(0, 245, 255, 0.1)" }
-                            : undefined
-                    }
+                <div
+                    style={{
+                        display: "flex",
+                        gap: "10px",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                    }}
                 >
-                    All Works ({items.length})
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => setActiveFilter("COMMISSIONS")}
-                    className={
-                        activeFilter === "COMMISSIONS"
-                            ? "btn btn-primary"
-                            : "btn btn-ghost"
-                    }
-                >
-                    ✨ Completed Commissions (
-                    {items.filter((i) => i.isCommission).length})
-                </button>
-
-                {uniqueCategories.map((cat) => (
                     <button
-                        key={cat}
                         type="button"
-                        onClick={() => setActiveFilter(cat)}
+                        onClick={() => setActiveFilter("ALL")}
                         className={
-                            activeFilter === cat
+                            activeFilter === "ALL"
                                 ? "btn btn-outline"
                                 : "btn btn-ghost"
                         }
                         style={
-                            activeFilter === cat
+                            activeFilter === "ALL"
                                 ? { background: "rgba(0, 245, 255, 0.1)" }
                                 : undefined
                         }
                     >
-                        {cat}
+                        All Works ({visibleItems.length})
                     </button>
-                ))}
+
+                    <button
+                        type="button"
+                        onClick={() => setActiveFilter("COMMISSIONS")}
+                        className={
+                            activeFilter === "COMMISSIONS"
+                                ? "btn btn-primary"
+                                : "btn btn-ghost"
+                        }
+                    >
+                        ✨ Completed Commissions (
+                        {visibleItems.filter((i) => i.isCommission).length})
+                    </button>
+
+                    {showNsfw && nsfwCount > 0 && (
+                        <button
+                            type="button"
+                            onClick={() => setActiveFilter("NSFW_ONLY")}
+                            className={
+                                activeFilter === "NSFW_ONLY"
+                                    ? "btn btn-primary"
+                                    : "btn btn-ghost"
+                            }
+                        >
+                            🔞 18+ Works ({nsfwCount})
+                        </button>
+                    )}
+
+                    {uniqueCategories.map((cat) => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setActiveFilter(cat)}
+                            className={
+                                activeFilter === cat
+                                    ? "btn btn-outline"
+                                    : "btn btn-ghost"
+                            }
+                            style={
+                                activeFilter === cat
+                                    ? { background: "rgba(0, 245, 255, 0.1)" }
+                                    : undefined
+                            }
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Global 18+ NSFW Toggle */}
+                <NsfwToggle
+                    nsfwCount={nsfwCount}
+                    label="Show NSFW (18+)"
+                />
             </div>
 
             {filteredItems.length === 0 ? (
@@ -95,6 +141,9 @@ export default function PortfolioGalleryClient({
                 >
                     <p style={{ color: "var(--muted)", fontSize: "1.05rem" }}>
                         No artworks found in this category yet.
+                        {!showNsfw && nsfwCount > 0
+                            ? ` (${nsfwCount} NSFW 18+ artwork${nsfwCount > 1 ? "s are" : " is"} currently hidden — enable the 🔞 switch above to view.)`
+                            : ""}
                     </p>
                 </div>
             ) : (
@@ -130,19 +179,40 @@ export default function PortfolioGalleryClient({
                                 />
 
                                 {/* Top Badges */}
-                                {item.isCommission && (
-                                    <div
-                                        style={{
-                                            position: "absolute",
-                                            top: "12px",
-                                            left: "12px",
-                                        }}
-                                    >
-                                        <span className="tag pink">
-                                            Commissioned
-                                        </span>
+                                <div
+                                    style={{
+                                        position: "absolute",
+                                        top: "12px",
+                                        left: "12px",
+                                        right: "12px",
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "flex-start",
+                                        gap: "6px",
+                                        pointerEvents: "none",
+                                    }}
+                                >
+                                    <div>
+                                        {item.isCommission && (
+                                            <span className="tag pink">
+                                                Commissioned
+                                            </span>
+                                        )}
                                     </div>
-                                )}
+                                    {item.isNsfw && (
+                                        <span
+                                            className="tag sold"
+                                            style={{
+                                                background:
+                                                    "rgba(255, 45, 120, 0.9)",
+                                                color: "#fff",
+                                                border: "1px solid #fff",
+                                            }}
+                                        >
+                                            🔞 18+
+                                        </span>
+                                    )}
+                                </div>
 
                                 {/* Bottom Info Overlay */}
                                 <div
@@ -199,7 +269,7 @@ export default function PortfolioGalleryClient({
             )}
 
             {/* High-Res Lightbox Modal */}
-            {selectedItem && (
+            {activeSelectedItem && (
                 <div
                     onClick={() => setSelectedItem(null)}
                     style={{
@@ -236,7 +306,7 @@ export default function PortfolioGalleryClient({
                         >
                             <div>
                                 <h2 style={{ margin: 0 }}>
-                                    {selectedItem.title}
+                                    {activeSelectedItem.title}
                                 </h2>
                                 <div
                                     style={{
@@ -244,17 +314,23 @@ export default function PortfolioGalleryClient({
                                         gap: "8px",
                                         marginTop: "6px",
                                         alignItems: "center",
+                                        flexWrap: "wrap",
                                     }}
                                 >
                                     <span className="tag cyan">
-                                        {selectedItem.category}
+                                        {activeSelectedItem.category}
                                     </span>
-                                    {selectedItem.isCommission && (
+                                    {activeSelectedItem.isCommission && (
                                         <span className="tag pink">
                                             Completed Commission
-                                            {selectedItem.clientName
-                                                ? ` • ${selectedItem.clientName}`
+                                            {activeSelectedItem.clientName
+                                                ? ` • ${activeSelectedItem.clientName}`
                                                 : ""}
+                                        </span>
+                                    )}
+                                    {activeSelectedItem.isNsfw && (
+                                        <span className="tag sold">
+                                            🔞 NSFW (18+)
                                         </span>
                                     )}
                                 </div>
@@ -281,8 +357,8 @@ export default function PortfolioGalleryClient({
                         >
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
-                                src={selectedItem.imageUrl}
-                                alt={selectedItem.title}
+                                src={activeSelectedItem.imageUrl}
+                                alt={activeSelectedItem.title}
                                 style={{
                                     maxHeight: "65vh",
                                     width: "auto",
@@ -291,7 +367,7 @@ export default function PortfolioGalleryClient({
                             />
                         </div>
 
-                        {selectedItem.description && (
+                        {activeSelectedItem.description && (
                             <p
                                 style={{
                                     color: "var(--muted)",
@@ -299,7 +375,7 @@ export default function PortfolioGalleryClient({
                                     marginBottom: 0,
                                 }}
                             >
-                                {selectedItem.description}
+                                {activeSelectedItem.description}
                             </p>
                         )}
                     </div>

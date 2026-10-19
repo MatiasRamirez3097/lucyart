@@ -22,6 +22,7 @@ export default function AdoptableCard({ adoptable }: AdoptableCardProps) {
         >
             <div
                 style={{
+                    position: "relative",
                     height: "240px",
                     background: "var(--bg-deep)",
                     borderRadius: "12px",
@@ -36,6 +37,20 @@ export default function AdoptableCard({ adoptable }: AdoptableCardProps) {
                     justifyContent: "center",
                 }}
             >
+                {adoptable.isNsfw && (
+                    <span
+                        className="tag sold"
+                        style={{
+                            position: "absolute",
+                            top: "10px",
+                            right: "10px",
+                            background: "rgba(255, 45, 120, 0.9)",
+                            color: "#fff",
+                        }}
+                    >
+                        🔞 18+
+                    </span>
+                )}
                 {!adoptable.imageUrl && (
                     <span style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
                         Character Preview

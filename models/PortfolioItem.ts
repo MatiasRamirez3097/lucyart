@@ -11,6 +11,7 @@ export interface IPortfolioItemDocument {
     clientName?: string;
     commissionTierId?: string;
     featured: boolean;
+    isNsfw: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -55,6 +56,10 @@ const PortfolioItemSchema = new Schema<IPortfolioItemDocument>(
             default: "",
         },
         featured: {
+            type: Boolean,
+            default: false,
+        },
+        isNsfw: {
             type: Boolean,
             default: false,
         },

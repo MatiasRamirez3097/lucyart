@@ -31,6 +31,7 @@ export interface Adoptable {
     imageUrl: string;
     publicId?: string;
     owner?: string;
+    isNsfw?: boolean;
     createdAt?: string;
 }
 
@@ -54,6 +55,7 @@ export interface PortfolioItem {
     clientName?: string;
     commissionTierId?: string;
     featured?: boolean;
+    isNsfw?: boolean;
     createdAt?: string;
 }
 
@@ -69,6 +71,8 @@ export interface CommissionTier {
     description: string;
     features: string[];
     exampleImages: string[];
+    isNsfw?: boolean;
+    nsfwAvailable?: boolean;
     order?: number;
 }
 

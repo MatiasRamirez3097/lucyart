@@ -26,6 +26,8 @@ const DEFAULT_TIERS: Omit<CommissionTier, "id">[] = [
             "Personal Use",
         ],
         exampleImages: ["https://via.placeholder.com/400x500"],
+        isNsfw: false,
+        nsfwAvailable: false,
         order: 1,
     },
     {
@@ -41,6 +43,8 @@ const DEFAULT_TIERS: Omit<CommissionTier, "id">[] = [
             "Personal Use",
         ],
         exampleImages: ["https://via.placeholder.com/400x400"],
+        isNsfw: false,
+        nsfwAvailable: true,
         order: 2,
     },
     {
@@ -56,6 +60,8 @@ const DEFAULT_TIERS: Omit<CommissionTier, "id">[] = [
             "Personal Use",
         ],
         exampleImages: ["https://via.placeholder.com/400x500"],
+        isNsfw: false,
+        nsfwAvailable: true,
         order: 3,
     },
 ];
@@ -91,6 +97,8 @@ export async function getCommissionTiers(): Promise<CommissionTier[]> {
             description: doc.description,
             features: doc.features || [],
             exampleImages: doc.exampleImages || [],
+            isNsfw: Boolean(doc.isNsfw),
+            nsfwAvailable: Boolean(doc.nsfwAvailable),
             order: doc.order ?? 0,
         }));
     } catch (error) {
@@ -123,6 +131,8 @@ export async function saveCommissionTier(formData: FormData): Promise<{
             (formData.get("features") as string | null)?.trim() || "";
         const exampleImagesRaw =
             (formData.get("exampleImages") as string | null)?.trim() || "";
+        const isNsfw = formData.get("isNsfw") === "true";
+        const nsfwAvailable = formData.get("nsfwAvailable") === "true";
         const order = Number(formData.get("order") || 0);
 
         if (!title || Number.isNaN(priceBase) || priceBase < 0) {
@@ -155,6 +165,8 @@ export async function saveCommissionTier(formData: FormData): Promise<{
                 description,
                 features,
                 exampleImages,
+                isNsfw,
+                nsfwAvailable: isNsfw ? true : nsfwAvailable,
                 order,
             });
         } else {
@@ -166,6 +178,8 @@ export async function saveCommissionTier(formData: FormData): Promise<{
                 description,
                 features,
                 exampleImages,
+                isNsfw,
+                nsfwAvailable: isNsfw ? true : nsfwAvailable,
                 order,
             });
         }
@@ -192,7 +206,12 @@ export async function saveCommissionTier(formData: FormData): Promise<{
 
 export async function updateCommissionTierQuick(
     id: string,
-    updates: { priceBase?: number; status?: CommissionTierStatus },
+    updates: {
+        priceBase?: number;
+        status?: CommissionTierStatus;
+        isNsfw?: boolean;
+        nsfwAvailable?: boolean;
+    },
 ): Promise<{ success: boolean; message: string }> {
     try {
         await requireAdmin();
@@ -208,6 +227,15 @@ export async function updateCommissionTierQuick(
         }
         if (updates.status) {
             updatePayload.status = updates.status;
+        }
+        if (updates.isNsfw !== undefined) {
+            updatePayload.isNsfw = updates.isNsfw;
+            if (updates.isNsfw) {
+                updatePayload.nsfwAvailable = true;
+            }
+        }
+        if (updates.nsfwAvailable !== undefined) {
+            updatePayload.nsfwAvailable = updates.nsfwAvailable;
         }
 
         await CommissionTierModel.findByIdAndUpdate(id, updatePayload);

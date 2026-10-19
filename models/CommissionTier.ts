@@ -10,6 +10,8 @@ export interface ICommissionTierDocument {
     description: string;
     features: string[];
     exampleImages: string[];
+    isNsfw: boolean;
+    nsfwAvailable: boolean;
     order: number;
     createdAt: Date;
     updatedAt: Date;
@@ -49,6 +51,14 @@ const CommissionTierSchema = new Schema<ICommissionTierDocument>(
         exampleImages: {
             type: [String],
             default: [],
+        },
+        isNsfw: {
+            type: Boolean,
+            default: false,
+        },
+        nsfwAvailable: {
+            type: Boolean,
+            default: false,
         },
         order: {
             type: Number,

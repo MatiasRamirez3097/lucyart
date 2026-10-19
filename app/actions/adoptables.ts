@@ -56,6 +56,7 @@ export async function getAdoptables(): Promise<Adoptable[]> {
             imageUrl: doc.imageUrl,
             publicId: doc.publicId || "",
             owner: doc.owner || "",
+            isNsfw: Boolean(doc.isNsfw),
             createdAt: doc.createdAt
                 ? new Date(doc.createdAt).toISOString()
                 : undefined,
@@ -86,6 +87,7 @@ export async function saveAdoptable(formData: FormData): Promise<{
         const publicId =
             (formData.get("publicId") as string | null)?.trim() || "";
         const owner = (formData.get("owner") as string | null)?.trim() || "";
+        const isNsfw = formData.get("isNsfw") === "true";
 
         if (!title || !imageUrl || Number.isNaN(price) || price < 0) {
             return {
@@ -115,6 +117,7 @@ export async function saveAdoptable(formData: FormData): Promise<{
             existing.imageUrl = imageUrl;
             existing.publicId = publicId;
             existing.owner = owner;
+            existing.isNsfw = isNsfw;
             await existing.save();
         } else {
             await AdoptableModel.create({
@@ -125,6 +128,7 @@ export async function saveAdoptable(formData: FormData): Promise<{
                 imageUrl,
                 publicId,
                 owner,
+                isNsfw,
             });
         }
 
@@ -171,6 +175,42 @@ export async function updateAdoptableStatus(
             error instanceof Error
                 ? error.message
                 : "Failed to update status.";
+        return { success: false, message };
+    }
+}
+
+export async function toggleAdoptableNsfw(
+    id: string,
+    isNsfw: boolean,
+): Promise<{ success: boolean; message: string }> {
+    try {
+        await requireAdmin();
+        await dbConnect();
+        const updated = await AdoptableModel.findByIdAndUpdate(
+            id,
+            { isNsfw },
+            { new: true },
+        );
+        if (!updated) {
+            return { success: false, message: "Adoptable not found." };
+        }
+
+        revalidatePath("/");
+        revalidatePath("/adoptables");
+        revalidatePath("/admin");
+        revalidatePath("/admin/adoptables");
+
+        return {
+            success: true,
+            message: isNsfw
+                ? `"${updated.title}" marked as 🔞 NSFW (18+).`
+                : `"${updated.title}" marked as SFW.`,
+        };
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to update NSFW status.";
         return { success: false, message };
     }
 }

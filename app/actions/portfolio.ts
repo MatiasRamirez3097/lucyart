@@ -47,6 +47,18 @@ const FALLBACK_PORTFOLIO: PortfolioItem[] = [
         isCommission: true,
         clientName: "@PalaStream",
         featured: false,
+        isNsfw: false,
+    },
+    {
+        id: "p5",
+        title: "Succubus Queen (After Hours)",
+        category: "Full Body",
+        imageUrl: "https://via.placeholder.com/400x500",
+        description: "18+ Pin-up commission with neon demon wings.",
+        isCommission: true,
+        clientName: "@DarkVortex",
+        featured: false,
+        isNsfw: true,
     },
 ];
 
@@ -72,6 +84,7 @@ export async function getPortfolioItems(): Promise<PortfolioItem[]> {
             clientName: doc.clientName || "",
             commissionTierId: doc.commissionTierId || "",
             featured: Boolean(doc.featured),
+            isNsfw: Boolean(doc.isNsfw),
             createdAt: doc.createdAt
                 ? new Date(doc.createdAt).toISOString()
                 : undefined,
@@ -106,6 +119,7 @@ export async function savePortfolioItem(formData: FormData): Promise<{
         const commissionTierId =
             (formData.get("commissionTierId") as string | null)?.trim() || "";
         const featured = formData.get("featured") === "true";
+        const isNsfw = formData.get("isNsfw") === "true";
 
         if (!title || !imageUrl) {
             return {
@@ -141,6 +155,7 @@ export async function savePortfolioItem(formData: FormData): Promise<{
             existing.clientName = isCommission ? clientName : "";
             existing.commissionTierId = isCommission ? commissionTierId : "";
             existing.featured = featured;
+            existing.isNsfw = isNsfw;
             await existing.save();
         } else {
             await PortfolioItemModel.create({
@@ -153,6 +168,7 @@ export async function savePortfolioItem(formData: FormData): Promise<{
                 clientName: isCommission ? clientName : "",
                 commissionTierId: isCommission ? commissionTierId : "",
                 featured,
+                isNsfw,
             });
         }
 
@@ -181,6 +197,49 @@ export async function savePortfolioItem(formData: FormData): Promise<{
             error instanceof Error
                 ? error.message
                 : "Failed to save portfolio item.";
+        return { success: false, message };
+    }
+}
+
+export async function togglePortfolioNsfw(
+    id: string,
+    isNsfw: boolean,
+): Promise<{
+    success: boolean;
+    message: string;
+}> {
+    try {
+        await requireAdmin();
+        await dbConnect();
+
+        const updated = await PortfolioItemModel.findByIdAndUpdate(
+            id,
+            { isNsfw },
+            { new: true },
+        );
+
+        if (!updated) {
+            return { success: false, message: "Artwork not found." };
+        }
+
+        revalidatePath("/");
+        revalidatePath("/portfolio");
+        revalidatePath("/commissions");
+        revalidatePath("/admin");
+        revalidatePath("/admin/portfolio");
+        revalidatePath("/admin/commissions");
+
+        return {
+            success: true,
+            message: isNsfw
+                ? `"${updated.title}" marked as 🔞 NSFW (18+).`
+                : `"${updated.title}" marked as SFW (All Ages).`,
+        };
+    } catch (error) {
+        const message =
+            error instanceof Error
+                ? error.message
+                : "Failed to update NSFW status.";
         return { success: false, message };
     }
 }
